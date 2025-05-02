@@ -1,150 +1,158 @@
-const predefinedThreads = {
-    '/wn': 'World News',
-    '/shit': 'Дичь',
-    '/political': 'Политика',
-    '/ru': 'Русское сообщество',
-    '/en': 'Англоязычное сообщество',
-    '/memes': 'Мемы',
-    '/programing': 'Программирование',
-    '/PTTK': 'Обсуждение имиджборды'
-};
-
-let threads = JSON.parse(localStorage.getItem('threads')) || {};
-let posts = JSON.parse(localStorage.getItem('posts')) || {};
-
-// Инициализация предустановленных веток
-Object.keys(predefinedThreads).forEach(path => {
-    if (!threads[path]) {
-        threads[path] = {
-            title: predefinedThreads[path],
-            isPredefined: true,
-            createdAt: new Date().toISOString()
-        };
-    }
-});
-
-function generateCode() {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    let code = '';
-    
-    const pattern = [
-        [letters, 4],
-        [numbers, 2],
-        [letters, 2],
-        [numbers, 4]
-    ];
-    
-    do {
-        code = pattern.map(([chars, length]) => 
-            Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-        ).join('');
-    } while (threads['/freeM/' + code]);
-    
-    return code;
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #3498db;
+    --hover-color: #2980b9;
+    --bg-color: #ecf0f1;
+    --text-color: #2c3e50;
 }
 
-function renderPage() {
-    const path = window.location.pathname;
-    const content = document.getElementById('content');
-    
-    if (path === '/freeM') {
-        renderFreeM();
-        return;
-    }
-    
-    if (path.startsWith('/freeM/')) {
-        renderThread(path);
-        return;
-    }
-    
-    if (predefinedThreads[path]) {
-        renderThread(path);
-        return;
-    }
-    
-    // Главная страница
-    content.innerHTML = 
-        <h2>Закреплённые ветки</h2>
-        ${Object.entries(predefinedThreads).map(([path, title]) => 
-            <div class="thread">
-                <a href="${path}">${title}</a>
-            </div>
-        ).join('')}
-    ;
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    min-height: 100vh;
 }
 
-function renderFreeM() {
-    const content = document.getElementById('content');
-    content.innerHTML = 
-        <h2>Свобода общения</h2>
-        <button onclick="createNewThread()">Создать новую ветку</button>
-        ${Object.keys(threads)
-            .filter(path => path.startsWith('/freeM/'))
-            .map(path => 
-                <div class="thread">
-                    <a href="${path}">${path.replace('/freeM/', '')}</a>
-                </div>
-            ).join('')}
-    ;
+#header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: var(--primary-color);
+    padding: 1rem;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-function createNewThread() {
-    const code = generateCode();
-    const path = /freeM/${code};
-    
-    threads[path] = {
-        title: code,
-        isPredefined: false,
-        createdAt: new Date().toISOString()
-    };
-    
-    localStorage.setItem('threads', JSON.stringify(threads));
-    window.location.href = path;
+.logo-letter {
+    display: inline-block;
+    font-size: 2.5rem;
+    color: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-function renderThread(path) {
-    if (!threads[path]) {
-        window.location.href = '/';
-        return;
-    }
-    
-    const content = document.getElementById('content');
-    document.getElementById('createThread').style.display = 'block';
-    
-    content.innerHTML = 
-        <h2>${threads[path].title}</h2>
-        <div id="messages">
-            ${(posts[path] || []).map(post => 
-                <div class="message">
-                    <div>${post.text}</div>
-                    <small>${new Date(post.date).toLocaleString()}</small>
-                </div>
-            ).join('')}
-        </div>
-    ;
+.logo-letter:hover {
+    transform: scale(1.2);
+    margin: 0 10px;
+    color: var(--accent-color);
 }
 
-function postMessage() {
-    const text = document.getElementById('newMessage').value;
-    if (!text) return;
-    
-    const path = window.location.pathname;
-    const post = {
-        text,
-        date: new Date().toISOString()
-    };
-    
-    posts[path] = posts[path] || [];
-    posts[path].push(post);
-    
-    localStorage.setItem('posts', JSON.stringify(posts));
-    document.getElementById('newMessage').value = '';
-    renderThread(path);
+#sidebar {
+    width: 250px;
+    background: white;
+    padding: 20px;
+    position: fixed;
+    left: 0;
+    top: 70px;
+    bottom: 0;
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 }
 
-// Инициализация
-window.onload = () => {
-    renderPage();
-    window.onpopstate = renderPage;
-};
+.nav-item {
+    margin: 10px 0;
+    padding: 12px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+    background: var(--bg-color);
+    transform: translateX(10px);
+}
+
+.nav-item a {
+    text-decoration: none;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#content {
+    margin-left: 290px;
+    margin-top: 80px;
+    padding: 20px;
+    flex-grow: 1;
+}
+
+.thread-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.thread-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.post-form {
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+#post-content {
+    width: 100%;
+    height: 150px;
+    padding: 15px;
+    border: 2px solid var(--accent-color);
+    border-radius: 8px;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+#post-content:focus {
+    border-color: var(--hover-color);
+    box-shadow: 0 0 10px rgba(52,152,219,0.3);
+}
+
+.submit-btn {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    float: right;
+    margin-top: 10px;
+}
+
+.submit-btn:hover {
+    background: var(--hover-color);
+    transform: scale(1.05);
+}
+
+.message {
+    background: #f8f9fa;
+    padding: 15px;
+    border-left: 4px solid var(--accent-color);
+    margin: 15px 0;
+    border-radius: 5px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+#thread-search {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 25px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+#thread-search:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(52,152,219,0.2);
+}
