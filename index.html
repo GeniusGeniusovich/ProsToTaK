@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ProsToTaK</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <header>
+            <h1>ProsToTaK</h1>
+            <nav>
+                <a href="/">Главная</a>
+                <a href="/freeM">FreeM</a>
+            </nav>
+        </header>
+        
+        <div id="content"></div>
+        
+        <div id="createThread" style="display: none;">
+            <textarea id="newMessage" placeholder="Ваше сообщение"></textarea>
+            <button onclick="postMessage()">Отправить</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
