@@ -3,25 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <title>ProsToTaK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="container">
-        <header>
-            <h1>ProsToTaK</h1>
-            <nav>
-                <a href="/">Главная</a>
-                <a href="/freeM">FreeM</a>
-            </nav>
-        </header>
-        
-        <div id="content"></div>
-        
-        <div id="createThread" style="display: none;">
-            <textarea id="newMessage" placeholder="Ваше сообщение"></textarea>
-            <button onclick="postMessage()">Отправить</button>
+    <div id="header">
+        <div id="logo" class="logo-letter">ProsToTaK</div>
+    </div>
+    
+    <div id="sidebar">
+        <div class="nav-item"><a href="/">Главная</a></div>
+        <div class="nav-item"><a href="/freeM">FreeM</a></div>
+        <div class="nav-item"><a href="/wn">World News</a></div>
+        <div class="nav-item"><a href="/shit">Дичь</a></div>
+        <div class="nav-item"><a href="/political">Политика</a></div>
+        <div class="nav-item"><a href="/ru">Русское</a></div>
+        <div class="nav-item"><a href="/en">English</a></div>
+        <div class="nav-item"><a href="/memes">Мемы</a></div>
+        <div class="nav-item"><a href="/programing">Программирование</a></div>
+        <div class="nav-item"><a href="/PTTK">Об имиджборде</a></div>
+        <div id="search-container">
+            <input type="text" id="thread-search" placeholder="Поиск веток...">
         </div>
     </div>
+
+    <div id="content">
+        <div id="thread-container"></div>
+        <div id="post-form" style="display: none;">
+            <textarea id="post-content" placeholder="Напишите сообщение..."></textarea>
+            <button onclick="submitPost()" class="submit-btn">Отправить</button>
+        </div>
+    </div>
+
+    <div id="overlay" class="animate__animated" style="display: none;"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
