@@ -1,158 +1,443 @@
-:root {
-    --primary-color: #2c3e50;
-    --accent-color: #3498db;
-    --hover-color: #2980b9;
-    --bg-color: #ecf0f1;
-    --text-color: #2c3e50;
+const predefinedThreads = {
+    '/wn': 'World News',
+    '/shit': 'Дичь',
+    '/political': 'Политика',
+    '/ru': 'Русское сообщество',
+    '/en': 'Англоязычное сообщество',
+    '/memes': 'Мемы',
+    '/programing': 'Программирование',
+    '/PTTK': 'Обсуждение имиджборды'
+};
+
+let threads = JSON.parse(localStorage.getItem('threads')) || {};
+let posts = JSON.parse(localStorage.getItem('posts')) || {};
+let currentPath = window.location.pathname;
+
+// Инициализация хранилища
+function initStorage() {
+    Object.entries(predefinedThreads).forEach(([path, title]) => {
+        if (!threads[path]) {
+            threads[path] = {
+                title,
+                isPredefined: true,
+                createdAt: new Date().toISOString(),
+                replies: 0,
+                lastActivity: new Date().toISOString()
+            };
+        }
+    });
+    localStorage.setItem('threads', JSON.stringify(threads));
+    localStorage.setItem('posts', JSON.stringify(posts));
 }
 
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Arial', sans-serif;
-    background: var(--bg-color);
-    color: var(--text-color);
-    display: flex;
-    min-height: 100vh;
+// Генератор уникальных кодов
+function generateThreadCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let code;
+    
+    do {
+        code = Array.from({length: 4}, () => chars[Math.floor(Math.random() * 52)]).join('') +
+               Array.from({length: 2}, () => chars[52 + Math.floor(Math.random() * 10)]).join('') +
+               Array.from({length: 2}, () => chars[Math.floor(Math.random() * 52)]).join('') +
+               Array.from({length: 4}, () => chars[52 + Math.floor(Math.random() * 10)]).join('');
+    } while (Object.keys(threads).some(k => k.includes(code)));
+    
+    return code;
 }
 
-#header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background: var(--primary-color);
-    padding: 1rem;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+// Отображение контента
+function renderContent() {
+    const container = document.getElementById('thread-container');
+    const path = window.location.pathname;
+    
+    if (path === '/freeM') {
+        renderFreeMPage();
+        return;
+    }
+    
+    if (path.startsWith('/freeM/') || Object.keys(predefinedThreads).includes(path)) {
+        renderThreadPage(path);
+        return;
+    }
+    
+    renderMainPage();
 }
 
-.logo-letter {
-    display: inline-block;
-    font-size: 2.5rem;
-    color: white;
-    transition: all 0.3s ease;
-    cursor: pointer;
+// Главная страница
+function renderMainPage() {
+    const container = document.getElementById('thread-container');
+    let html = '<h2>Активные ветки</h2>';
+    
+    Object.entries(threads).forEach(([path, thread]) => {
+        if (thread.isPredefined) {
+            html += 
+                <div class="thread-card" onclick="navigateTo('${path}')">
+                    <h3>${thread.title}</h3>
+                    <p>Сообщений: ${posts[path]?.length || 0}</p>
+                    <small>Последняя активность: ${new Date(thread.lastActivity).toLocaleString()}</small>
+                </div>
+            ;
+        }
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'none';
 }
 
-.logo-letter:hover {
-    transform: scale(1.2);
-    margin: 0 10px;
-    color: var(--accent-color);
+// Страница FreeM
+function renderFreeMPage() {
+    const container = document.getElementById('thread-container');
+    let html = 
+        <div class="thread-header">
+            <h2>Свободные ветки</h2>
+            <button onclick="createNewThread()" class="submit-btn">Создать ветку</button>
+        </div>
+    ;
+    
+    Object.entries(threads).forEach(([path, thread]) => {
+        if (path.startsWith('/freeM/')) {
+            html += 
+                <div class="thread-card" onclick="navigateTo('${path}')">
+                    <h3>/${path.split('/').pop()}</h3>
+                    <p>${thread.title}</p>
+                    <p>Сообщений: ${posts[path]?.length || 0}</p>
+                    <small>Создана: ${new Date(thread.createdAt).toLocaleDateString()}</small>
+                </div>
+            ;
+        }
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'none';
 }
 
-#sidebar {
-    width: 250px;
-    background: white;
-    padding: 20px;
-    position: fixed;
-    left: 0;
-    top: 70px;
-    bottom: 0;
-    overflow-y: auto;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+// Страница ветки
+function renderThreadPage(path) {
+    const container = document.getElementById('thread-container');
+    const thread = threads[path];
+    
+    if (!thread) {
+        window.location.href = '/';
+        return;
+    }
+    
+    let html = 
+        <div class="thread-header">
+            <h2>${thread.title}</h2>
+            <button onclick="window.history.back()" class="submit-btn">Назад</button>
+        </div>
+    ;
+    
+    if (posts[path]) {
+        posts[path].forEach((post, index) => {
+            html += 
+                <div class="message">
+                    <div class="post-content">${post.text}</div>
+                    <div class="post-meta">
+                        <span class="post-id">#${index + 1}</span>
+                        <span class="post-date">${new Date(post.date).toLocaleString()}</span>
+                    </div>
+                </div>
+            ;
+        });
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'block';
 }
 
-.nav-item {
-    margin: 10px 0;
-    padding: 12px;
-    border-radius: 5px;
-    transition: all 0.3s ease;
+// Навигация
+function navigateTo(path) {
+    window.history.pushState({}, '', path);
+    renderContent();
 }
 
-.nav-item:hover {
-    background: var(--bg-color);
-    transform: translateX(10px);
+// Создание новой ветки
+function createNewThread() {
+    const code = generateThreadCode();
+    const path = /freeM/${code};
+    
+    threads[path] = {
+        title: Ветка /${code},
+        isPredefined: false,
+        createdAt: new Date().toISOString(),
+        replies: 0,
+        lastActivity: new Date().toISOString()
+    };
+    
+    localStorage.setItem('threads', JSON.stringify(threads));
+    navigateTo(path);
 }
 
-.nav-item a {
-    text-decoration: none;
-    color: var(--text-color);
-    font-weight: bold;
+// Отправка сообщения
+function submitPost() {
+    const text = document.getElementById('post-content').value.trim();
+    if (!text) return;
+    
+    const path = window.location.pathname;
+    const post = {
+        text,
+        date: new Date().toISOString()
+    };
+    
+    posts[path] = posts[path] || [];
+    posts[path].push(post);
+    
+    threads[path].replies++;
+    threads[path].lastActivity = new Date().toISOString();
+    
+    localStorage.setItem('posts', JSON.stringify(posts));
+    localStorage.setItem('threads', JSON.stringify(threads));
+    
+    document.getElementById('post-content').value = '';
+    renderThreadPage(path);
 }
 
-#content {
-    margin-left: 290px;
-    margin-top: 80px;
-    padding: 20px;
-    flex-grow: 1;
+// Поиск веток
+document.getElementById('thread-search').addEventListener('input', _.debounce(e => {
+    const query = e.target.value.toLowerCase();
+    const cards = document.getElementsByClassName('thread-card');
+    
+    Array.from(cards).forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        card.style.display = title.includes(query) ? 'block' : 'none';
+    });
+}, 300));
+
+// Инициализация
+window.addEventListener('DOMContentLoaded', () => {
+    initStorage();
+    renderContent();
+    window.onpopstate = renderContent;
+});
+
+// Режим реального времени
+setInterval(() => {
+    const newPosts = JSON.parse(localStorage.getItem('posts'));
+    if (JSON.stringify(newPosts) !== JSON.stringify(posts)) {
+        posts = newPosts;
+        renderContent();
+    }
+}, 1000);
+
+const predefinedThreads = {
+    '/wn': 'World News',
+    '/shit': 'Дичь',
+    '/political': 'Политика',
+    '/ru': 'Русское сообщество',
+    '/en': 'Англоязычное сообщество',
+    '/memes': 'Мемы',
+    '/programing': 'Программирование',
+    '/PTTK': 'Обсуждение имиджборды'
+};
+
+let threads = JSON.parse(localStorage.getItem('threads')) || {};
+let posts = JSON.parse(localStorage.getItem('posts')) || {};
+let currentPath = window.location.pathname;
+
+// Инициализация хранилища
+function initStorage() {
+    Object.entries(predefinedThreads).forEach(([path, title]) => {
+        if (!threads[path]) {
+            threads[path] = {
+                title,
+                isPredefined: true,
+                createdAt: new Date().toISOString(),
+                replies: 0,
+                lastActivity: new Date().toISOString()
+            };
+        }
+    });
+    localStorage.setItem('threads', JSON.stringify(threads));
+    localStorage.setItem('posts', JSON.stringify(posts));
 }
 
-.thread-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    cursor: pointer;
+// Генератор уникальных кодов
+function generateThreadCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let code;
+    
+    do {
+        code = Array.from({length: 4}, () => chars[Math.floor(Math.random() * 52)]).join('') +
+               Array.from({length: 2}, () => chars[52 + Math.floor(Math.random() * 10)]).join('') +
+               Array.from({length: 2}, () => chars[Math.floor(Math.random() * 52)]).join('') +
+               Array.from({length: 4}, () => chars[52 + Math.floor(Math.random() * 10)]).join('');
+    } while (Object.keys(threads).some(k => k.includes(code)));
+    
+    return code;
 }
 
-.thread-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+// Отображение контента
+function renderContent() {
+    const container = document.getElementById('thread-container');
+    const path = window.location.pathname;
+    
+    if (path === '/freeM') {
+        renderFreeMPage();
+        return;
+    }
+    
+    if (path.startsWith('/freeM/') || Object.keys(predefinedThreads).includes(path)) {
+        renderThreadPage(path);
+        return;
+    }
+    
+    renderMainPage();
 }
 
-.post-form {
-    max-width: 800px;
-    margin: 20px auto;
+// Главная страница
+function renderMainPage() {
+    const container = document.getElementById('thread-container');
+    let html = '<h2>Активные ветки</h2>';
+    
+    Object.entries(threads).forEach(([path, thread]) => {
+        if (thread.isPredefined) {
+            html += 
+                <div class="thread-card" onclick="navigateTo('${path}')">
+                    <h3>${thread.title}</h3>
+                    <p>Сообщений: ${posts[path]?.length || 0}</p>
+                    <small>Последняя активность: ${new Date(thread.lastActivity).toLocaleString()}</small>
+                </div>
+            ;
+        }
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'none';
 }
 
-#post-content {
-    width: 100%;
-    height: 150px;
-    padding: 15px;
-    border: 2px solid var(--accent-color);
-    border-radius: 8px;
-    resize: vertical;
-    transition: all 0.3s ease;
+// Страница FreeM
+function renderFreeMPage() {
+    const container = document.getElementById('thread-container');
+    let html = 
+        <div class="thread-header">
+            <h2>Свободные ветки</h2>
+            <button onclick="createNewThread()" class="submit-btn">Создать ветку</button>
+        </div>
+    ;
+    
+    Object.entries(threads).forEach(([path, thread]) => {
+        if (path.startsWith('/freeM/')) {
+            html += 
+                <div class="thread-card" onclick="navigateTo('${path}')">
+                    <h3>/${path.split('/').pop()}</h3>
+                    <p>${thread.title}</p>
+                    <p>Сообщений: ${posts[path]?.length || 0}</p>
+                    <small>Создана: ${new Date(thread.createdAt).toLocaleDateString()}</small>
+                </div>
+            ;
+        }
+    });
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'none';
 }
 
-#post-content:focus {
-    border-color: var(--hover-color);
-    box-shadow: 0 0 10px rgba(52,152,219,0.3);
+// Страница ветки
+function renderThreadPage(path) {
+    const container = document.getElementById('thread-container');
+    const thread = threads[path];
+    
+    if (!thread) {
+        window.location.href = '/';
+        return;
+    }
+    
+    let html = 
+        <div class="thread-header">
+            <h2>${thread.title}</h2>
+            <button onclick="window.history.back()" class="submit-btn">Назад</button>
+        </div>
+    ;
+    
+    if (posts[path]) {
+        posts[path].forEach((post, index) => {
+            html += 
+                <div class="message">
+                    <div class="post-content">${post.text}</div>
+                    <div class="post-meta">
+                        <span class="post-id">#${index + 1}</span>
+                        <span class="post-date">${new Date(post.date).toLocaleString()}</span>
+                    </div>
+                </div>
+            ;
+        });
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('post-form').style.display = 'block';
 }
 
-.submit-btn {
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 25px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    float: right;
-    margin-top: 10px;
+// Навигация
+function navigateTo(path) {
+    window.history.pushState({}, '', path);
+    renderContent();
 }
 
-.submit-btn:hover {
-    background: var(--hover-color);
-    transform: scale(1.05);
+// Создание новой ветки
+function createNewThread() {
+    const code = generateThreadCode();
+    const path = /freeM/${code};
+    
+    threads[path] = {
+        title: Ветка /${code},
+        isPredefined: false,
+        createdAt: new Date().toISOString(),
+        replies: 0,
+        lastActivity: new Date().toISOString()
+    };
+    
+    localStorage.setItem('threads', JSON.stringify(threads));
+    navigateTo(path);
 }
 
-.message {
-    background: #f8f9fa;
-    padding: 15px;
-    border-left: 4px solid var(--accent-color);
-    margin: 15px 0;
-    border-radius: 5px;
-    animation: slideIn 0.3s ease;
+// Отправка сообщения
+function submitPost() {
+    const text = document.getElementById('post-content').value.trim();
+    if (!text) return;
+    
+    const path = window.location.pathname;
+    const post = {
+        text,
+        date: new Date().toISOString()
+    };
+    
+    posts[path] = posts[path] || [];
+    posts[path].push(post);
+    
+    threads[path].replies++;
+    threads[path].lastActivity = new Date().toISOString();
+    
+    localStorage.setItem('posts', JSON.stringify(posts));
+    localStorage.setItem('threads', JSON.stringify(threads));
+    
+    document.getElementById('post-content').value = '';
+    renderThreadPage(path);
 }
 
-@keyframes slideIn {
-    from { transform: translateX(-20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
+// Поиск веток
+document.getElementById('thread-search').addEventListener('input', _.debounce(e => {
+    const query = e.target.value.toLowerCase();
+    const cards = document.getElementsByClassName('thread-card');
+    
+    Array.from(cards).forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        card.style.display = title.includes(query) ? 'block' : 'none';
+    });
+}, 300));
 
-#thread-search {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 25px;
-    margin: 20px 0;
-    transition: all 0.3s ease;
-}
+// Инициализация
+window.addEventListener('DOMContentLoaded', () => {
+    initStorage();
+    renderContent();
+    window.onpopstate = renderContent;
+});
 
-#thread-search:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 15px rgba(52,152,219,0.2);
-}
+// Режим реального времени
+setInterval(() => {
+    const newPosts = JSON.parse(localStorage.getItem('posts'));
+    if (JSON.stringify(newPosts) !== JSON.stringify(posts)) {
+        posts = newPosts;
+        renderContent();
+    }
+}, 1000);
